@@ -1,0 +1,47 @@
+You are an information extractor. Your task is to analyze the provided text and return a STRICT JSON object.
+
+Instructions:
+- Summarize the text in 1–2 sentences.
+- Propose a short, descriptive title.
+- List exactly 3 topics (single words only).
+- Assign an overall sentiment (one of: "positive", "neutral", "negative").
+- Do NOT include any extra text, comments, or formatting outside the JSON.
+
+Text:
+{{input_text}}
+
+Return JSON with this schema:
+{
+  "summary": "string",
+  "title": "string",
+  "topics": ["string", "string", "string"],
+  "sentiment": "positive | neutral | negative"
+}
+
+---
+
+### Example 1
+Input:
+"Artificial Intelligence is transforming healthcare. Doctors are using AI to detect diseases faster and improve patient outcomes, but there are concerns about ethics and data privacy."
+
+Output:
+{
+  "summary": "AI is transforming healthcare by enabling faster diagnoses and improved outcomes, while raising ethical and privacy concerns.",
+  "title": "AI in Healthcare",
+  "topics": ["AI", "Healthcare", "Ethics"],
+  "sentiment": "neutral"
+}
+
+---
+
+### Example 2
+Input:
+"The new iPhone has been released to overwhelmingly positive reviews. Users praise its battery life and improved camera features."
+
+Output:
+{
+  "summary": "The latest iPhone release has received highly positive feedback, with strong praise for battery life and camera improvements.",
+  "title": "iPhone Launch",
+  "topics": ["iPhone", "Technology", "Reviews"],
+  "sentiment": "positive"
+}

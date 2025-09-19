@@ -1,0 +1,106 @@
+from typing import List, Optional
+import json
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Depends, Query
+
+from app.schemas.analysis import AnalysisRequest, AnalysisResponse
+from app.services.llm_service import analyze_text, LLMError
+from app.services.nlp_service import extract_top_nouns
+from app.db.database import SessionLocal
+from app.db import crud
+from app.db.models import Base
+from app.db.database import engine
+from app.utils.text_utils import clean_text
+from app.utils.logger import get_logger
+
+# Create tables on import (simple bootstrap for assignment)
+Base.metadata.create_all(bind=engine)
+
+router = APIRouter()
+logger = get_logger(__name__)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@router.post("/analyze", response_model=AnalysisResponse)
+async def analyze(payload: AnalysisRequest, db: Session = Depends(get_db)):
+    """Analyze the text and return summary and metadata"""
+    logger.info(f"Received analyze request for text of length: {len(payload.text)}")
+
+    text = clean_text(payload.text)
+    if not text:
+        logger.warning("Empty text provided in analyze request")
+        raise HTTPException(status_code=400, detail={"error": "Input text is required"})
+    
+    try:
+        logger.info("Starting LLM analysis")
+        llm_result = analyze_text(text)
+        logger.info("LLM analysis completed, extracting keywords")
+        
+        keywords = extract_top_nouns(text, top_k=3)
+        logger.debug(f"Extracted keywords: {keywords}")
+        
+        data = {
+			"input_text": text,
+			"summary": llm_result["summary"],
+			"title": llm_result["title"],
+			"topics": llm_result.get("topics", []),
+			"sentiment": llm_result.get("sentiment", "neutral"),
+			"keywords": keywords,
+		}
+        
+        logger.info("Saving analysis to database")
+        row = crud.save_analysis(db, data)
+        logger.info(f"Analysis saved with ID: {row.id}")
+        
+        return AnalysisResponse(
+			id=row.id,
+			summary=row.summary,
+			title=row.title,
+			topics=json.loads(row.topics),
+			sentiment=row.sentiment,
+			keywords=json.loads(row.keywords),
+			created_at=row.created_at,
+		)
+    except LLMError as e:
+        logger.error(f"LLM analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail={"error": "LLM request failed"})
+    except Exception as e:
+        logger.error(f"Unexpected error in analyze endpoint: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail={"error": "Internal server error"})
+
+
+@router.get("/search", response_model=List[AnalysisResponse])
+async def search(topic: Optional[str] = Query(default=None), db: Session = Depends(get_db)):
+    """
+	Search analyses by topic. Searches both topic and keyword fields and returns unique results.
+	"""
+    logger.info(f"Received search request for topic: {topic}")
+    
+    if not topic:
+        logger.warning("No topic provided in search request")
+        return []
+
+	# Search both topic and keyword fields for the given term
+    logger.debug(f"Searching database for topic: {topic}")
+    results = crud.search_analyses(db, topic)
+    logger.info(f"Found {len(results)} matching analyses")
+
+    return [
+		AnalysisResponse(
+			id=r.id,
+			summary=r.summary,
+			title=r.title,
+			topics=json.loads(r.topics),
+			sentiment=r.sentiment,
+			keywords=json.loads(r.keywords),
+			created_at=r.created_at,
+		)
+		for r in results
+	]
