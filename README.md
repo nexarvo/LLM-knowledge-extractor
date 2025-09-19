@@ -48,6 +48,10 @@ docker-compose up -d
 - `POST /analyze` - Analyze text and extract knowledge
 - `GET /search?topic=xyz` - Search stored analyses by topic or keywords
 
+### Swagger Docs
+
+- url: `http://localhost:8000/docs`
+
 ## Design Choices
 
 I structured this application using a **modular, service-oriented architecture** to ensure clean separation of concerns and easy extensibility. The codebase is organized into distinct layers: API routes handle HTTP requests, services contain business logic (LLM analysis, NLP processing), database operations are abstracted through CRUD functions, and configuration is centralized using Pydantic settings. I chose **FastAPI** for its excellent performance, automatic API documentation, and built-in validation, while **SQLite** provides zero-configuration persistence that's perfect for development and small-scale deployments. The **multi-provider LLM support** (OpenAI, Claude, local Ollama) is implemented through a factory pattern in the config layer, allowing easy switching between providers without changing business logic. External prompt files and comprehensive logging ensure the system is both customizable and observable.
