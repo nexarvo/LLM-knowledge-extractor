@@ -27,13 +27,13 @@ Edit `.env` file to set your preferred LLM provider:
 
 ### Running the Application
 
-#### Local Development
+#### Local Development (Recommended)
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-#### Docker (Recommended)
+#### Docker
 
 ```bash
 # Copy Docker environment
@@ -46,7 +46,7 @@ docker-compose up -d
 ### API Endpoints
 
 - `POST /analyze` - Analyze text and extract knowledge
-- `GET /search?topic=xyz` - Search stored analyses by topic
+- `GET /search?topic=xyz` - Search stored analyses by topic or keywords
 
 ## Design Choices
 
